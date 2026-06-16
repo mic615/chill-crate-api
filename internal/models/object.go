@@ -21,6 +21,5 @@ type Object struct {
 
 func (o *Object) BeforeCreate(tx *gorm.DB) error {
 	o.ID = uuid.New()
-	o.StoragePath = uuid.New()
 	return nil
 }

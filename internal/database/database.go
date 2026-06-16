@@ -25,7 +25,6 @@ func Connect(cfg *config.Config) {
 	if err != nil {
 		panic(err)
 	}
-	DB = db
 	db.AutoMigrate(&models.Group{}, &models.Bucket{}, &models.Object{})
 	DB = db
 }

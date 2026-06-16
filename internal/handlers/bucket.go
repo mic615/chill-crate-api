@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
+	"github.com/mic615/chill-crate-api/internal/storage"
 )
 
 type NewBucket struct {
@@ -27,7 +28,12 @@ func CreateBucket() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "group not found"})
 			return
 		}
+		// todo check if buckets exist in storage and in the db and decide on uuid vs string naming
 		newBucket := models.Bucket{Name: bucket.Name, GroupID: bucket.GroupID}
+		if err := storage.CreateBucket(bucket.Name); err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		if err := database.DB.Create(&newBucket).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

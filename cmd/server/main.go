@@ -7,12 +7,14 @@ import (
 	"github.com/mic615/chill-crate-api/internal/config"
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/routes"
+	"github.com/mic615/chill-crate-api/internal/storage"
 )
 
 func main() {
 	router := gin.Default()
 	cfg := config.Load()
 	database.Connect(cfg)
+	storage.Connect(cfg)
 	routes.RegisterRoutes(router)
 	// Inform the user where the server is listening
 	log.Println("Running @ http://" + cfg.ServerHost + ":" + cfg.ServerPort)

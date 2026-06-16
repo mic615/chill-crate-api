@@ -19,7 +19,7 @@ func RegisterRoutes(r *gin.Engine) {
 	{
 		buckets.POST("", handlers.CreateBucket())
 		buckets.GET("/:bucketId/objects", handlers.GetObjectsByBucketID())
-		// buckets.GET(":/:bucketId/objects/:filename", handlers.DownloadObject())
+		buckets.GET("/:bucketId/objects/:filename", handlers.DownloadObject())
 		buckets.POST("/:bucketId/objects", handlers.UploadObject())
 	}
 	// objects

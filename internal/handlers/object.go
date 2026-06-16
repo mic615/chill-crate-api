@@ -1,27 +1,26 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
+	"github.com/mic615/chill-crate-api/internal/storage"
 )
-
-type NewObject struct {
-	FileName string `json:"file_name" binding:"required"`
-}
 
 func UploadObject() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var object NewObject
+		// var object NewObject
 		bucketID := c.Param("bucketId")
-		if err := c.ShouldBindJSON(&object); err != nil {
-			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		// todo validate and sanitize file name
+		file, head, err := c.Request.FormFile("file")
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		// todo validate and sanitize file name
 
 		// Todo add role checks when auth is added
 		// verify bucket exists
@@ -32,18 +31,55 @@ func UploadObject() gin.HandlerFunc {
 		}
 		// calculate version
 		objects := []models.Object{}
-		database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, object.FileName).Order("version desc").Find(&objects)
+		database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, head.Filename).Order("version desc").Find(&objects)
 		version := 1
 		if len(objects) > 0 {
 			version = objects[0].Version + 1
 		}
-		// todo store file
-		newObject := models.Object{FileName: object.FileName, BucketID: bucket.ID, Version: version, Size: 1}
+		storagePath := uuid.New()
+		// todo check file size
+		// based on size , do single or multi part upload
+		if err := storage.UploadObject(bucket.Name, storagePath.String(), head.Filename, file); err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		newObject := models.Object{FileName: head.Filename, BucketID: bucket.ID, Version: version, StoragePath: storagePath, Size: head.Size}
 		if err := database.DB.Create(&newObject).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.IndentedJSON(http.StatusCreated, newObject)
+	}
+
+}
+
+func DownloadObject() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		filename := c.Param("filename")
+		bucketID := c.Param("bucketId")
+		var bucket models.Bucket
+		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
+			return
+		}
+		object := models.Object{}
+		// get the latest object
+		if err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, filename).Order("version desc").First(&object).Error; err != nil {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "object not found"})
+			return
+		}
+		// todo check file size
+		// based on size , do single or multi part downlod
+		body, err := storage.DownloadObject(bucket.Name, object.StoragePath.String())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer body.Close()
+		headerMap := map[string]string{"Content-Disposition": fmt.Sprintf("attachment; filename=%q", filename)}
+
+		c.DataFromReader(http.StatusOK, object.Size, "application/octet-stream", body, headerMap)
+
 	}
 
 }
