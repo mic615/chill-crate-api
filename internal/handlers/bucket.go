@@ -5,14 +5,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
 	"github.com/mic615/chill-crate-api/internal/storage"
 )
 
 type NewBucket struct {
-	Name    string    `json:"name" binding:"required"`
-	GroupID uuid.UUID `json:"group_id"  binding:"required"`
+	Name    string    `json:"name"     binding:"required"`
+	GroupID uuid.UUID `json:"group_id" binding:"required"`
 }
 
 func CreateBucket() gin.HandlerFunc {
@@ -61,6 +62,5 @@ func GetBucketsByGroupID() gin.HandlerFunc {
 			return
 		}
 		c.IndentedJSON(http.StatusOK, buckets)
-
 	}
 }

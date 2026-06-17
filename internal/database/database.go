@@ -3,10 +3,11 @@ package database
 import (
 	"fmt"
 
-	"github.com/mic615/chill-crate-api/internal/config"
-	"github.com/mic615/chill-crate-api/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/mic615/chill-crate-api/internal/config"
+	"github.com/mic615/chill-crate-api/internal/models"
 )
 
 var DB *gorm.DB
@@ -25,6 +26,10 @@ func Connect(cfg *config.Config) {
 	if err != nil {
 		panic(err)
 	}
-	db.AutoMigrate(&models.Group{}, &models.Bucket{}, &models.Object{})
+
+	err = db.AutoMigrate(&models.Group{}, &models.Bucket{}, &models.Object{})
+	if err != nil {
+		panic(err)
+	}
 	DB = db
 }

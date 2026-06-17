@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
 )
@@ -24,11 +25,9 @@ func CreateGroup() gin.HandlerFunc {
 		if err := database.DB.Create(&newGroup).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
-
 		}
 		c.IndentedJSON(http.StatusCreated, newGroup)
 	}
-
 }
 
 func GetGroups() gin.HandlerFunc {
@@ -39,6 +38,5 @@ func GetGroups() gin.HandlerFunc {
 			return
 		}
 		c.IndentedJSON(http.StatusOK, groups)
-
 	}
 }

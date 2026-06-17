@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/mic615/chill-crate-api/internal/config"
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/routes"
@@ -20,5 +21,4 @@ func main() {
 	log.Println("Running @ http://" + cfg.ServerHost + ":" + cfg.ServerPort)
 	// Print out and exit(1) to the OS if the server cannot run
 	log.Fatalln(router.Run(cfg.ServerHost + ":" + cfg.ServerPort))
-
 }

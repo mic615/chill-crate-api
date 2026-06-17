@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
 	"github.com/mic615/chill-crate-api/internal/storage"
@@ -13,7 +14,6 @@ import (
 
 func UploadObject() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// var object NewObject
 		bucketID := c.Param("bucketId")
 		// todo validate and sanitize file name
 		file, head, err := c.Request.FormFile("file")
@@ -31,7 +31,9 @@ func UploadObject() gin.HandlerFunc {
 		}
 		// calculate version
 		objects := []models.Object{}
-		database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, head.Filename).Order("version desc").Find(&objects)
+		database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, head.Filename).
+			Order("version desc").
+			Find(&objects)
 		version := 1
 		if len(objects) > 0 {
 			version = objects[0].Version + 1
@@ -39,18 +41,28 @@ func UploadObject() gin.HandlerFunc {
 		storagePath := uuid.New()
 		// todo check file size
 		// based on size , do single or multi part upload
-		if err := storage.UploadObject(bucket.Name, storagePath.String(), head.Filename, file); err != nil {
+		if err := storage.UploadObject(
+			bucket.Name,
+			storagePath.String(),
+			head.Filename,
+			file,
+		); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		newObject := models.Object{FileName: head.Filename, BucketID: bucket.ID, Version: version, StoragePath: storagePath, Size: head.Size}
+		newObject := models.Object{
+			FileName:    head.Filename,
+			BucketID:    bucket.ID,
+			Version:     version,
+			StoragePath: storagePath,
+			Size:        head.Size,
+		}
 		if err := database.DB.Create(&newObject).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.IndentedJSON(http.StatusCreated, newObject)
 	}
-
 }
 
 func DownloadObject() gin.HandlerFunc {
@@ -64,7 +76,10 @@ func DownloadObject() gin.HandlerFunc {
 		}
 		object := models.Object{}
 		// get the latest object
-		if err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, filename).Order("version desc").First(&object).Error; err != nil {
+		if err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, filename).
+			Order("version desc").
+			First(&object).
+			Error; err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "object not found"})
 			return
 		}
@@ -76,12 +91,12 @@ func DownloadObject() gin.HandlerFunc {
 			return
 		}
 		defer body.Close()
-		headerMap := map[string]string{"Content-Disposition": fmt.Sprintf("attachment; filename=%q", filename)}
+		headerMap := map[string]string{
+			"Content-Disposition": fmt.Sprintf("attachment; filename=%q", filename),
+		}
 
 		c.DataFromReader(http.StatusOK, object.Size, "application/octet-stream", body, headerMap)
-
 	}
-
 }
 
 func GetObjectsByBucketID() gin.HandlerFunc {

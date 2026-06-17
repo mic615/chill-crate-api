@@ -11,6 +11,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+
 	"github.com/mic615/chill-crate-api/internal/config"
 )
 
@@ -20,7 +21,13 @@ func Connect(cfg *config.Config) {
 	awscfg, err := awsconfig.LoadDefaultConfig(
 		context.Background(),
 		awsconfig.WithRegion(cfg.StorageRegion),
-		awsconfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.StorageAccessKey, cfg.StorageSecretKey, "")),
+		awsconfig.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(
+				cfg.StorageAccessKey,
+				cfg.StorageSecretKey,
+				"",
+			),
+		),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -30,7 +37,6 @@ func Connect(cfg *config.Config) {
 		o.BaseEndpoint = aws.String(cfg.StorageEndpoint)
 		o.UsePathStyle = true
 	})
-	client.ListBuckets(context.Background(), nil)
 	// reachability probe — fail fast at boot.
 	if _, err := client.ListBuckets(context.Background(), &s3.ListBucketsInput{}); err != nil {
 		log.Fatalf("failed to reach Storage endpoint %s: %v", cfg.StorageEndpoint, err)
@@ -39,14 +45,17 @@ func Connect(cfg *config.Config) {
 }
 
 func CreateBucket(name string) error {
-	_, err := Client.CreateBucket(context.Background(), &s3.CreateBucketInput{Bucket: aws.String(name)})
+	_, err := Client.CreateBucket(
+		context.Background(),
+		&s3.CreateBucketInput{Bucket: aws.String(name)},
+	)
 	if err != nil {
 		return fmt.Errorf("create bucket %s: %w", name, err)
 	}
 	return err
 }
 
-func UploadObject(bucketName string, objectKey string, fileName string, file multipart.File) error {
+func UploadObject(bucketName, objectKey, fileName string, file multipart.File) error {
 	defer file.Close()
 	_, err := Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
@@ -54,20 +63,29 @@ func UploadObject(bucketName string, objectKey string, fileName string, file mul
 		Body:   file,
 	})
 	if err != nil {
-		return fmt.Errorf("Couldn't upload file %v to %v:%v. Here's why: %v\n", fileName, bucketName, objectKey, err)
+		return fmt.Errorf(
+			"couldn't upload file %v to %v:%v: %w",
+			fileName,
+			bucketName,
+			objectKey,
+			err,
+		)
 	}
 	return err
 }
 
-func DownloadObject(bucketName string, objectKey string) (io.ReadCloser, error) {
+func DownloadObject(bucketName, objectKey string) (io.ReadCloser, error) {
 	result, err := Client.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: &bucketName,
 		Key:    &objectKey,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't get object %v:%v. Here's why: %v\n", bucketName, objectKey, err)
-
+		return nil, fmt.Errorf(
+			"couldn't get object %v:%v: %w",
+			bucketName,
+			objectKey,
+			err,
+		)
 	}
 	return result.Body, err
-
 }
