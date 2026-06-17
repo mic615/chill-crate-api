@@ -8,19 +8,16 @@ import (
 )
 
 type Group struct {
-	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
-	KCGroupID string    `gorm:"uniqueIndex;not null"`
-	Name      string    `gorm:"not null"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Buckets   []Bucket
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
+	Name        string    `gorm:"not null"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	Buckets     []Bucket
+	Memberships []Membership
 }
 
 func (g *Group) BeforeCreate(tx *gorm.DB) error {
 	g.ID = uuid.New()
-	if g.KCGroupID == "" {
-		g.KCGroupID = uuid.New().String()
-	}
 	return nil
 }

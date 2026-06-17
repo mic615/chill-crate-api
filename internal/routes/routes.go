@@ -10,7 +10,7 @@ func RegisterRoutes(r *gin.Engine) {
 	r.GET("/ping", handlers.Ping())
 	groups := r.Group("/groups")
 	groups.POST("", handlers.CreateGroup())
-	groups.GET("", handlers.GetGroups())
+	groups.GET("", handlers.GetMyGroups())
 	groups.GET("/:groupId/buckets", handlers.GetBucketsByGroupID())
 
 	// buckets

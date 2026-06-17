@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
@@ -16,17 +17,42 @@ type NewGroup struct {
 func CreateGroup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var group NewGroup
+		userID := c.GetString("userID")
+		// TODO handle missing ID
 		if err := c.ShouldBindJSON(&group); err != nil {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		// Todo add keycloakID when auth is added
-		newGroup := models.Group{Name: group.Name, KCGroupID: ""}
-		if err := database.DB.Create(&newGroup).Error; err != nil {
+		newGroup := models.Group{Name: group.Name}
+		err := database.DB.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Create(&newGroup).Error; err != nil {
+				return err
+			}
+			membership := models.Membership{KCUserID: userID, GroupID: newGroup.ID}
+			// TODO: Role: RoleAdmin once roles are added
+			return tx.Create(&membership).Error
+		})
+		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.IndentedJSON(http.StatusCreated, newGroup)
+	}
+}
+
+func GetMyGroups() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID := c.GetString("userID")
+		// TODO handle missing ID
+		groups := []models.Group{}
+		if err := database.DB.Joins("JOIN memberships ON memberships.group_id = groups.id").
+			Where(".kc_user_id = ?", userID).
+			Find(&groups).
+			Error; err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, groups)
 	}
 }
 

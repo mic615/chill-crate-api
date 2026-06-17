@@ -83,6 +83,7 @@ formatters:
     - gofmt
     - gofumpt
     - goimports
+    - golines
   settings:
     gofmt:
       rewrite-rules:
