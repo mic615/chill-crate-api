@@ -17,7 +17,7 @@ type NewGroup struct {
 func CreateGroup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var group NewGroup
-		userID := c.GetString("userID")
+		userID := c.GetHeader("X-Stub-User")
 		// TODO handle missing ID
 		if err := c.ShouldBindJSON(&group); err != nil {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -42,11 +42,12 @@ func CreateGroup() gin.HandlerFunc {
 
 func GetMyGroups() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID := c.GetString("userID")
+
+		userID := c.GetHeader("X-Stub-User")
 		// TODO handle missing ID
 		groups := []models.Group{}
 		if err := database.DB.Joins("JOIN memberships ON memberships.group_id = groups.id").
-			Where(".kc_user_id = ?", userID).
+			Where("memberships.kc_user_id = ?", userID).
 			Find(&groups).
 			Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
