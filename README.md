@@ -29,7 +29,7 @@ GET  /groups/:groupId/buckets             list buckets in group
 
 POST /buckets                             create bucket
 GET  /buckets/:bucketId/objects           list objects in bucket
-POST /buckets/:bucketId/objects           upload file (multipart/form-data)
+POST /buckets/:bucketId/object/:filename  upload file
 GET  /buckets/:bucketId/objects/:filename download file (latest version)
 
 GET  /objects/:id                         get object metadata
@@ -68,10 +68,10 @@ Copy `.env.example` to `.env` and set:
 | `DB_PASSWORD` | — | PostgreSQL password |
 | `DB_NAME` | — | Database name |
 | `DB_SSLMODE` | `disable` | PostgreSQL SSL mode |
-| `STORAGE_ENDPOINT` | — | S3/MinIO endpoint URL |
-| `STORAGE_REGION` | — | S3 region |
-| `STORAGE_ACCESS_KEY` | — | S3 access key |
-| `STORAGE_SECRET_KEY` | — | S3 secret key |
+| `STORAGE_ENDPOINT` | — | Storage endpoint URL |
+| `STORAGE_REGION` | — | Required by S3 SDK but does nothing |
+| `STORAGE_ACCESS_KEY` | — | Storage username |
+| `STORAGE_SECRET_KEY` | — | Storage password |
 
 Docker Compose services are available at:
 - PostgreSQL: `localhost:5432`
