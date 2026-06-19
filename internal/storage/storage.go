@@ -55,7 +55,27 @@ func CreateBucket(name string) error {
 	return err
 }
 
-func UploadObject(bucketName, objectKey, fileName string, file multipart.File) error {
+func UploadObject(bucketName, objectKey, fileName string, body io.Reader, size int64) error {
+	_, err := Client.PutObject(context.Background(), &s3.PutObjectInput{
+		Bucket:        aws.String(bucketName),
+		Key:           aws.String(objectKey),
+		Body:          body,
+		ContentLength: aws.Int64(size),
+	})
+	if err != nil {
+		return fmt.Errorf(
+			"couldn't upload file %v to %v:%v: %w",
+			fileName,
+			bucketName,
+			objectKey,
+			err,
+		)
+	}
+	return err
+}
+
+// this does miltipart file upload .Will likely get removed
+func UploadObjectMP(bucketName, objectKey, fileName string, file multipart.File) error {
 	defer file.Close()
 	_, err := Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),

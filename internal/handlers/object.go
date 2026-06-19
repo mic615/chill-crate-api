@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,12 +18,8 @@ import (
 func UploadObject() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bucketID := c.Param("bucketId")
+		fileName := c.Param("filename")
 		// todo validate and sanitize file name
-		file, head, err := c.Request.FormFile("file")
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
 
 		// Todo add role checks when auth is added
 		// verify bucket exists
@@ -31,7 +30,7 @@ func UploadObject() gin.HandlerFunc {
 		}
 		// calculate version
 		objects := []models.Object{}
-		database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, head.Filename).
+		database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
 			Order("version desc").
 			Find(&objects)
 		version := 1
@@ -41,21 +40,31 @@ func UploadObject() gin.HandlerFunc {
 		storagePath := uuid.New()
 		// todo check file size
 		// based on size , do single or multi part upload
+		// load small files into buffer
+		data, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "reading body: " + err.Error()})
+			return
+		}
+
 		if err := storage.UploadObject(
 			bucket.Name,
 			storagePath.String(),
-			head.Filename,
-			file,
+			fileName,
+			bytes.NewReader(data),
+			int64(len(data)),
 		); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+		log.Print(fileName)
+		// TODO stream large files
 		newObject := models.Object{
-			FileName:    head.Filename,
+			FileName:    fileName,
 			BucketID:    bucket.ID,
 			Version:     version,
 			StoragePath: storagePath,
-			Size:        head.Size,
+			Size:        c.Request.ContentLength,
 		}
 		if err := database.DB.Create(&newObject).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -109,7 +118,8 @@ func GetObjectsByBucketID() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
-		if err := database.DB.Where("bucket_id = ?", bucketID).Find(&objects).Error; err != nil {
+		queryString := "SELECT DISTINCT ON (file_name) * FROM objects WHERE bucket_id = ? AND deleted_at IS NULL ORDER BY file_name, version DESC"
+		if err := database.DB.Raw(queryString, bucketID).Scan(&objects).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}

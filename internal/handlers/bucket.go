@@ -57,10 +57,6 @@ func GetBucketsByGroupID() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		if len(buckets) == 0 {
-			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "no buckets found"})
-			return
-		}
 		c.IndentedJSON(http.StatusOK, buckets)
 	}
 }

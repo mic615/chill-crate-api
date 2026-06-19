@@ -42,7 +42,6 @@ func CreateGroup() gin.HandlerFunc {
 
 func GetMyGroups() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		userID := c.GetHeader("X-Stub-User")
 		// TODO handle missing ID
 		groups := []models.Group{}
