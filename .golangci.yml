@@ -3,8 +3,10 @@ version: "2"
 linters:
   default: none
   enable:
+    - asciicheck
     - bodyclose
     - copyloopvar
+    - cyclop
     - dogsled
     - errcheck
     - errorlint
@@ -20,13 +22,19 @@ linters:
     - lll
     - misspell
     - nakedret
+    - nilerr
     - noctx
     - nolintlint
+    - perfsprint
+    - prealloc
     - revive
     - staticcheck
+    - testifylint
     - unconvert
     - unparam
     - unused
+    - usestdlibvars
+    - wastedassign
     - whitespace
 
   settings:
