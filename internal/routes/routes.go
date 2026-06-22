@@ -19,6 +19,8 @@ func RegisterRoutes(r *gin.Engine) {
 	buckets.GET("/:bucketId/objects", handlers.GetObjectsByBucketID())
 	buckets.GET("/:bucketId/objects/:filename", handlers.DownloadObject())
 	buckets.POST("/:bucketId/objects/:filename", handlers.UploadObject())
+	buckets.DELETE("/:bucketId/objects/:filename", handlers.DeleteObject())
+	buckets.POST("/:bucketId/objects/:filename/restore", handlers.RestoreObject())
 
 	// objects
 	objects := r.Group("/objects")

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -57,13 +56,12 @@ func UploadObject() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		log.Print(fileName)
 		// TODO stream large files
 		newObject := models.Object{
 			FileName:    fileName,
 			BucketID:    bucket.ID,
 			Version:     version,
-			StoragePath: storagePath,
+			StoragePath: &storagePath,
 			Size:        c.Request.ContentLength,
 		}
 		if err := database.DB.Create(&newObject).Error; err != nil {
@@ -85,10 +83,10 @@ func DownloadObject() gin.HandlerFunc {
 		}
 		object := models.Object{}
 		// get the latest object
-		if err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, filename).
+		if err := database.DB.Where("bucket_id = ? AND file_name = ?", bucketID, filename).
 			Order("version desc").
 			First(&object).
-			Error; err != nil {
+			Error; err != nil || object.DeleteMarker {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "object not found"})
 			return
 		}
@@ -118,7 +116,15 @@ func GetObjectsByBucketID() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
-		queryString := "SELECT DISTINCT ON (file_name) * FROM objects WHERE bucket_id = ? AND deleted_at IS NULL ORDER BY file_name, version DESC"
+		queryString := `
+			SELECT * FROM (
+			SELECT DISTINCT ON (file_name) * 
+			FROM objects 
+			WHERE bucket_id = ? AND deleted_at IS NULL 
+			ORDER BY file_name, version DESC
+			) latest 
+			WHERE delete_marker = false;
+		`
 		if err := database.DB.Raw(queryString, bucketID).Scan(&objects).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -138,6 +144,74 @@ func GetObjectByID() gin.HandlerFunc {
 
 		if err := database.DB.Find(&object, id).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, object)
+	}
+}
+
+func DeleteObject() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bucketID := c.Param("bucketId")
+		fileName := c.Param("filename")
+		// todo validate and sanitize file name
+
+		// Todo add role checks when auth is added
+		// verify bucket exists
+		var bucket models.Bucket
+		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
+			return
+		}
+		// find latest object version and verify it is not deleted already
+		object := models.Object{}
+		if err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
+			Order("version desc").
+			First(&object).Error; err != nil || object.DeleteMarker {
+			c.JSON(http.StatusNotFound, gin.H{"error": "object not found"})
+			return
+		}
+		// calculate version
+		version := object.Version + 1
+		newObject := models.Object{
+			FileName:     fileName,
+			BucketID:     bucket.ID,
+			Version:      version,
+			StoragePath:  nil,
+			DeleteMarker: true,
+			Size:         0,
+		}
+		if err := database.DB.Create(&newObject).Error; err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, newObject)
+	}
+}
+
+func RestoreObject() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bucketID := c.Param("bucketId")
+		fileName := c.Param("filename")
+		// todo validate and sanitize file name
+
+		// Todo add role checks when auth is added
+		// verify bucket exists
+		var bucket models.Bucket
+		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
+			return
+		}
+		// find latest object version and verify it is deleted
+		object := models.Object{}
+		if err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
+			Order("version desc").
+			First(&object).Error; err != nil || !object.DeleteMarker {
+			c.JSON(http.StatusNotFound, gin.H{"error": "object not found"})
+			return
+		}
+		if err := database.DB.Unscoped().Delete(&models.Object{}, object.ID).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "object not found"})
 			return
 		}
 		c.IndentedJSON(http.StatusOK, object)
