@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
@@ -129,10 +130,6 @@ func GetObjectsByBucketID() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		if len(objects) == 0 {
-			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "no objects found"})
-			return
-		}
 		c.IndentedJSON(http.StatusOK, objects)
 	}
 }
@@ -202,18 +199,43 @@ func RestoreObject() gin.HandlerFunc {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
+		// find last 2 objects  should be the deleted one and version n-1 (the one we're restoring)
+		objects := []models.Object{}
+		err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
+			Order("version desc").Limit(2).
+			Find(&objects).Error
+		if len(objects) < 2 {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "there are less than 2 object versions nothing to restore"})
+			return
+
+		}
+		deletedVersion := objects[0]
+		restoredVersion := objects[1]
 		// find latest object version and verify it is deleted
-		object := models.Object{}
-		if err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
-			Order("version desc").
-			First(&object).Error; err != nil || !object.DeleteMarker {
+		if err != nil || !deletedVersion.DeleteMarker {
 			c.JSON(http.StatusNotFound, gin.H{"error": "object not found"})
 			return
 		}
-		if err := database.DB.Unscoped().Delete(&models.Object{}, object.ID).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "object not found"})
+		//  create a new version with the restored data
+		restoredObject := models.Object{
+			FileName:    restoredVersion.FileName,
+			BucketID:    restoredVersion.BucketID,
+			Version:     deletedVersion.Version + 1,
+			StoragePath: restoredVersion.StoragePath,
+			Size:        restoredVersion.Size,
+		}
+		//  soft delete the deleted version for auditability
+		err = database.DB.Transaction(func(tx *gorm.DB) error {
+			if err = tx.Delete(&models.Object{}, deletedVersion.ID).Error; err != nil {
+				return err
+			}
+			return tx.Create(&restoredObject).Error
+		})
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to restore object: " + err.Error()})
 			return
 		}
-		c.IndentedJSON(http.StatusOK, object)
+		c.IndentedJSON(http.StatusOK, restoredObject)
 	}
 }
