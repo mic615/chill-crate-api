@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
@@ -120,7 +121,17 @@ func DeleteBucket() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
-		if err := database.DB.Delete(&bucket).Error; err != nil {
+		// after S3 objects + S3 bucket are gone, clear the DB in a transaction
+		err := database.DB.Transaction(func(tx *gorm.DB) error {
+			if err := tx.Unscoped().
+				Where("bucket_id = ?", bucket.ID).
+				Delete(&models.Object{}).
+				Error; err != nil {
+				return err
+			}
+			return tx.Delete(&bucket).Error
+		})
+		if err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
