@@ -77,7 +77,7 @@ func GetBucketByName() gin.HandlerFunc {
 		if err := database.DB.Where("group_id = ? AND name = ?", groupID, name).
 			First(&bucket).
 			Error; err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.IndentedJSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
 		c.IndentedJSON(http.StatusOK, bucket)
@@ -110,15 +110,14 @@ func DeleteBucket() gin.HandlerFunc {
 				c.IndentedJSON(http.StatusConflict, gin.H{"error": "bucket not empty"})
 				return
 			}
-			err := storage.DeleteObjects(bucket.ID.String(), objects)
-			if err != nil {
-				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
+			if err := storage.DeleteObjects(bucket.ID.String(), objects); err != nil {
+				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 
 			}
 		}
 		if err := storage.DeleteBucket(bucket.ID.String()); err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		// after S3 objects + S3 bucket are gone, clear the DB in a transaction

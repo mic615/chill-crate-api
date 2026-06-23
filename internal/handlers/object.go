@@ -142,8 +142,8 @@ func GetObjectByID() gin.HandlerFunc {
 		id := c.Param("id")
 		object := models.Object{}
 
-		if err := database.DB.Find(&object, id).Error; err != nil {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		if err := database.DB.First(&object, id).Error; err != nil {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
 		c.IndentedJSON(http.StatusOK, object)

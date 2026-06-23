@@ -28,7 +28,7 @@ func Load() *Config {
 	viper.SetDefault("SERVER_PORT", "8081")
 	viper.SetDefault("STORAGE_ENDPOINT", "http://localhost:9000")
 	// this doesn't do anything but is needed for s3 api call compatibility
-	viper.SetDefault("STORAGE_REIGON", "us-west-1")
+	viper.SetDefault("STORAGE_REGION", "us-west-1")
 	viper.SetConfigFile(".env")
 	_ = viper.ReadInConfig() // .env is optional
 	viper.AutomaticEnv()
@@ -43,7 +43,7 @@ func Load() *Config {
 		ServerHost:       viper.GetString("SERVER_HOST"),
 		ServerPort:       viper.GetString("SERVER_PORT"),
 		StorageEndpoint:  viper.GetString("STORAGE_ENDPOINT"),
-		StorageRegion:    viper.GetString("STORAGE_REIGON"),
+		StorageRegion:    viper.GetString("STORAGE_REGION"),
 		StorageAccessKey: viper.GetString("STORAGE_ACCESS_KEY"),
 		StorageSecretKey: viper.GetString("STORAGE_SECRET_KEY"),
 	}

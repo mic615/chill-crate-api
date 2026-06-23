@@ -22,7 +22,7 @@ func RegisterRoutes(r *gin.Engine) {
 	buckets.POST("/:bucketId/objects/:filename", handlers.UploadObject())
 	buckets.DELETE("/:bucketId/objects/:filename", handlers.DeleteObject())
 	buckets.POST("/:bucketId/objects/:filename/restore", handlers.RestoreObject())
-	buckets.DELETE("/:bucketId/", handlers.DeleteBucket())
+	buckets.DELETE("/:bucketId", handlers.DeleteBucket())
 
 	// objects
 	objects := r.Group("/objects")
