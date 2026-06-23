@@ -55,8 +55,12 @@ func CreateBucket(name string) error {
 	}
 	return err
 }
+
 func DeleteBucket(bucketID string) error {
-	_, err := Client.DeleteBucket(context.Background(), &s3.DeleteBucketInput{Bucket: aws.String(bucketID)})
+	_, err := Client.DeleteBucket(
+		context.Background(),
+		&s3.DeleteBucketInput{Bucket: aws.String(bucketID)},
+	)
 	if err != nil {
 		return fmt.Errorf("couldn't delete bucket %v: %w", bucketID, err)
 	}
@@ -120,8 +124,13 @@ func DownloadObject(bucketName, objectKey string) (io.ReadCloser, error) {
 
 func DeleteObjects(bucketName string, objects []models.Object) error {
 	for _, obj := range objects {
-		_, err := Client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: aws.String(bucketName), Key: aws.String(obj.StoragePath.String())})
-
+		_, err := Client.DeleteObject(
+			context.Background(),
+			&s3.DeleteObjectInput{
+				Bucket: aws.String(bucketName),
+				Key:    aws.String(obj.StoragePath.String()),
+			},
+		)
 		if err != nil {
 			return fmt.Errorf("couldn't delete object %v.%v: %w", obj.FileName, obj.Version, err)
 		}

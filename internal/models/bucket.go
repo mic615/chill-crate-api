@@ -16,8 +16,3 @@ type Bucket struct {
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 	Objects   []Object
 }
-
-func (b *Bucket) BeforeCreate(tx *gorm.DB) error {
-	b.ID = uuid.New()
-	return nil
-}

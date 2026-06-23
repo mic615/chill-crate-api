@@ -12,6 +12,7 @@ func RegisterRoutes(r *gin.Engine) {
 	groups.POST("", handlers.CreateGroup())
 	groups.GET("", handlers.GetMyGroups())
 	groups.GET("/:groupId/buckets", handlers.GetBucketsByGroupID())
+	groups.GET("/:groupId/buckets/:name", handlers.GetBucketByName())
 
 	// buckets
 	buckets := r.Group("/buckets")

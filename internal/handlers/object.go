@@ -47,7 +47,7 @@ func UploadObject() gin.HandlerFunc {
 		}
 
 		if err := storage.UploadObject(
-			bucket.Name,
+			bucket.ID.String(),
 			storagePath.String(),
 			fileName,
 			bytes.NewReader(data),
@@ -92,7 +92,7 @@ func DownloadObject() gin.HandlerFunc {
 		}
 		// todo check file size
 		// based on size , do single or multi part downlod
-		body, err := storage.DownloadObject(bucket.Name, object.StoragePath.String())
+		body, err := storage.DownloadObject(bucket.ID.String(), object.StoragePath.String())
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

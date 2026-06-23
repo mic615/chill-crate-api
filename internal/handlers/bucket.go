@@ -30,9 +30,9 @@ func CreateBucket() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "group not found"})
 			return
 		}
-		// todo check if buckets exist in storage and in the db and decide on uuid vs string naming
-		newBucket := models.Bucket{Name: bucket.Name, GroupID: bucket.GroupID}
-		if err := storage.CreateBucket(bucket.Name); err != nil {
+		bucketID := uuid.New()
+		newBucket := models.Bucket{ID: bucketID, Name: bucket.Name, GroupID: bucket.GroupID}
+		if err := storage.CreateBucket(bucketID.String()); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -62,6 +62,27 @@ func GetBucketsByGroupID() gin.HandlerFunc {
 	}
 }
 
+func GetBucketByName() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		groupID := c.Param("groupId")
+		name := c.Param("name")
+		bucket := models.Bucket{}
+
+		var group models.Group
+		if err := database.DB.First(&group, "id = ?", groupID).Error; err != nil {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "group not found"})
+			return
+		}
+		if err := database.DB.Where("group_id = ? AND name = ?", groupID, name).
+			First(&bucket).
+			Error; err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, bucket)
+	}
+}
+
 func DeleteBucket() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bucketID := c.Param("bucketId")
@@ -77,7 +98,9 @@ func DeleteBucket() gin.HandlerFunc {
 
 		// find all objects in the bucket
 		objects := []models.Object{}
-		if err := database.DB.Where("bucket_id = ? AND delete_marker = false", bucketID).Find(&objects).Error; err != nil {
+		if err := database.DB.Where("bucket_id = ? AND delete_marker = false", bucketID).
+			Find(&objects).
+			Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -86,14 +109,14 @@ func DeleteBucket() gin.HandlerFunc {
 				c.IndentedJSON(http.StatusConflict, gin.H{"error": "bucket not empty"})
 				return
 			}
-			err := storage.DeleteObjects(bucket.Name, objects)
+			err := storage.DeleteObjects(bucket.ID.String(), objects)
 			if err != nil {
 				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 				return
 
 			}
 		}
-		if err := storage.DeleteBucket(bucket.Name); err != nil {
+		if err := storage.DeleteBucket(bucket.ID.String()); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 			return
 		}
@@ -102,7 +125,5 @@ func DeleteBucket() gin.HandlerFunc {
 			return
 		}
 		c.IndentedJSON(http.StatusOK, "bucket deleted")
-
 	}
-
 }
