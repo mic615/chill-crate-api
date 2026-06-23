@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"github.com/mic615/chill-crate-api/internal/config"
+	"github.com/mic615/chill-crate-api/internal/models"
 )
 
 var Client *s3.Client
@@ -51,6 +52,13 @@ func CreateBucket(name string) error {
 	)
 	if err != nil {
 		return fmt.Errorf("create bucket %s: %w", name, err)
+	}
+	return err
+}
+func DeleteBucket(bucketID string) error {
+	_, err := Client.DeleteBucket(context.Background(), &s3.DeleteBucketInput{Bucket: aws.String(bucketID)})
+	if err != nil {
+		return fmt.Errorf("couldn't delete bucket %v: %w", bucketID, err)
 	}
 	return err
 }
@@ -108,4 +116,15 @@ func DownloadObject(bucketName, objectKey string) (io.ReadCloser, error) {
 		)
 	}
 	return result.Body, err
+}
+
+func DeleteObjects(bucketName string, objects []models.Object) error {
+	for _, obj := range objects {
+		_, err := Client.DeleteObject(context.Background(), &s3.DeleteObjectInput{Bucket: aws.String(bucketName), Key: aws.String(obj.StoragePath.String())})
+
+		if err != nil {
+			return fmt.Errorf("couldn't delete object %v.%v: %w", obj.FileName, obj.Version, err)
+		}
+	}
+	return nil
 }

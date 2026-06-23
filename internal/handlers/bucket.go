@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -59,4 +60,49 @@ func GetBucketsByGroupID() gin.HandlerFunc {
 		}
 		c.IndentedJSON(http.StatusOK, buckets)
 	}
+}
+
+func DeleteBucket() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		bucketID := c.Param("bucketId")
+		force := false
+		if strings.ToLower(c.Query("force")) == "true" {
+			force = true
+		}
+		var bucket models.Bucket
+		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
+			return
+		}
+
+		// find all objects in the bucket
+		objects := []models.Object{}
+		if err := database.DB.Where("bucket_id = ? AND delete_marker = false", bucketID).Find(&objects).Error; err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if len(objects) > 0 {
+			if !force {
+				c.IndentedJSON(http.StatusConflict, gin.H{"error": "bucket not empty"})
+				return
+			}
+			err := storage.DeleteObjects(bucket.Name, objects)
+			if err != nil {
+				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
+				return
+
+			}
+		}
+		if err := storage.DeleteBucket(bucket.Name); err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
+			return
+		}
+		if err := database.DB.Delete(&bucket).Error; err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, "bucket deleted")
+
+	}
+
 }
