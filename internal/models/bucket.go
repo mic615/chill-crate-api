@@ -9,8 +9,8 @@ import (
 
 type Bucket struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey"`
-	Name      string    `gorm:"not null;uniqueIndex:idx_bucket_name_group"`
-	GroupID   uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_bucket_name_group"`
+	Name      string    `gorm:"not null;uniqueIndex:idx_bucket_name_group,where:deleted_at IS NULL"`
+	GroupID   uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_bucket_name_group,where:deleted_at IS NULL"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
