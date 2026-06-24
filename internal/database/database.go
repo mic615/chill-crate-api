@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/mic615/chill-crate-api/internal/config"
-	"github.com/mic615/chill-crate-api/internal/models"
 )
 
 var DB *gorm.DB
@@ -27,9 +26,5 @@ func Connect(cfg *config.Config) {
 		panic(err)
 	}
 
-	err = db.AutoMigrate(&models.Group{}, &models.Membership{}, &models.Bucket{}, &models.Object{})
-	if err != nil {
-		panic(err)
-	}
 	DB = db
 }

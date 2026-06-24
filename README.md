@@ -67,7 +67,7 @@ Copy `.env.example` to `.env` and set:
 | `DB_USER` | — | PostgreSQL user |
 | `DB_PASSWORD` | — | PostgreSQL password |
 | `DB_NAME` | — | Database name |
-| `DB_SSLMODE` | `disable` | PostgreSQL SSL mode |
+| `DB_SSL_MODE` | `disable` | PostgreSQL SSL mode |
 | `STORAGE_ENDPOINT` | — | Storage endpoint URL |
 | `STORAGE_REGION` | — | Required by S3 SDK but does nothing |
 | `STORAGE_ACCESS_KEY` | — | Storage username |
