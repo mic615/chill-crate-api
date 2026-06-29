@@ -207,7 +207,6 @@ func RestoreObject() gin.HandlerFunc {
 		if len(objects) < 2 {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "there are less than 2 object versions nothing to restore"})
 			return
-
 		}
 		deletedVersion := objects[0]
 		restoredVersion := objects[1]

@@ -20,4 +20,4 @@ COPY --from=builder /app/chill-crate-api .
 COPY --from=builder /app/migrate .
 EXPOSE ${SERVER_PORT}
 # run the migration tool and then start the application
-CMD ["sh", "-c", "./migrate && ./chill-crate-api"]
+CMD ["./chill-crate-api"]

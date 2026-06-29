@@ -24,7 +24,7 @@ func Load() *Config {
 	viper.SetDefault("DB_HOST", "localhost")
 	viper.SetDefault("DB_PORT", "5432")
 	viper.SetDefault("DB_SSL_MODE", "disable")
-	viper.SetDefault("SERVER_HOST", "localhost")
+	viper.SetDefault("SERVER_HOST", "0.0.0.0")
 	viper.SetDefault("SERVER_PORT", "8081")
 	viper.SetDefault("STORAGE_ENDPOINT", "http://localhost:9000")
 	// this doesn't do anything but is needed for s3 api call compatibility
@@ -42,7 +42,7 @@ func Load() *Config {
 		DBSSLMode:        viper.GetString("DB_SSL_MODE"),
 		ServerHost:       viper.GetString("SERVER_HOST"),
 		ServerPort:       viper.GetString("SERVER_PORT"),
-		StorageEndpoint:  "http://" + viper.GetString("STORAGE_HOST") + ":" + viper.GetString("STORAGE_PORT"),
+		StorageEndpoint:  viper.GetString("STORAGE_ENDPOINT"),
 		StorageRegion:    viper.GetString("STORAGE_REGION"),
 		StorageAccessKey: viper.GetString("STORAGE_ACCESS_KEY"),
 		StorageSecretKey: viper.GetString("STORAGE_SECRET_KEY"),

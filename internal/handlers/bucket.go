@@ -113,7 +113,6 @@ func DeleteBucket() gin.HandlerFunc {
 			if err := storage.DeleteObjects(bucket.ID.String(), objects); err != nil {
 				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
-
 			}
 		}
 		if err := storage.DeleteBucket(bucket.ID.String()); err != nil {

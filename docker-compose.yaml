@@ -1,10 +1,23 @@
 services:
+  migrate:
+    image: chill-crate-api:latest
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_SSL_MODE=${DB_SSL_MODE}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["./migrate"]
   api:
     image: chill-crate-api:latest
     ports:
       - "${SERVER_PORT:-8081}:8081"
     environment:
-      - DB_HOST=db
+      - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
@@ -12,18 +25,17 @@ services:
       - DB_SSL_MODE=${DB_SSL_MODE}
       - SERVER_HOST=${SERVER_HOST}
       - SERVER_PORT=${SERVER_PORT}
-      - STORAGE_HOST=minio
-      - STORAGE_PORT=9000
+      - STORAGE_ENDPOINT=http://minio:9000
       - STORAGE_REGION=${STORAGE_REGION}
       - STORAGE_ACCESS_KEY=${STORAGE_ACCESS_KEY}
       - STORAGE_SECRET_KEY=${STORAGE_SECRET_KEY}
     depends_on:
-      db:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       minio:
         condition: service_started
 
-  db:
+  postgres:
     image: postgres:16
     volumes:
       - ./data/db:/var/lib/postgresql/data

@@ -30,6 +30,8 @@ go.work.sum
 # local data
 data/
 
+secret.yaml
+
 # Editor/IDE
 # .idea/
 # .vscode/
