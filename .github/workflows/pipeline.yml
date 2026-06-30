@@ -61,7 +61,7 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: |
-            ghcr.io/mic615/chill-crate-api:main-${{ github.sha }}
+            ghcr.io/mic615/chill-crate-api:main-${{ github.run_number }}-${{ github.sha }}
             ghcr.io/mic615/chill-crate-api:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
