@@ -1,0 +1,18 @@
+{{- if .Values.nodePort.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Chart.Name }}-np
+  labels:
+    {{- include "chill-crate-api.labels" . | nindent 4 }}
+spec:
+  type: NodePort
+  selector:
+    {{- include "chill-crate-api.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.nodePort.port }}
+      targetPort: http
+      protocol: TCP
+      nodePort: {{ .Values.nodePort.nodePort }}
+{{- end }}

@@ -1,0 +1,9 @@
+apiVersion: v2
+name: chill-crate-api
+description: S3-style object storage API
+
+type: application
+
+version: 0.1.0
+
+appVersion: "0.1.0"

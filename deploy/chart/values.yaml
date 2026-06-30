@@ -1,0 +1,45 @@
+# This will set the replicaset count
+replicaCount: 1
+
+# This sets the container image
+image:
+  repository: ghcr.io/mic615/chill-crate-api
+  pullPolicy: Always
+  tag: latest
+
+server:
+  port: 8081
+
+service:
+  port: 8081
+
+nodePort:
+  enabled: true
+  port: 8081
+  nodePort: 30081
+
+config:
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_SSL_MODE: disable
+  SERVER_HOST: "0.0.0.0"
+  SERVER_PORT: "8081"
+  STORAGE_ENDPOINT: http://minio:9000
+  STORAGE_REGION: us-west-1
+
+secretName: chill-crate-secret
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+readinessProbe:
+  httpGet:
+    path: /ping
+    port: 8081
+  initialDelaySeconds: 5
+  periodSeconds: 10
