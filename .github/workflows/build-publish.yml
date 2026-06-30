@@ -1,0 +1,44 @@
+name: Docker Build and Publish
+
+on:
+  push:
+    branches: [main]        # only publish from main
+
+permissions:
+  contents: read
+  packages: write           # needed to push to GHCR
+
+
+jobs:
+  build-publish:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@vv4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+ 
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ghcr.io/mic615/chill-crate-api:${{ github.sha }}
+            ghcr.io/mic615/chill-crate-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
