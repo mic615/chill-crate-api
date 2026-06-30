@@ -205,7 +205,8 @@ func RestoreObject() gin.HandlerFunc {
 			Order("version desc").Limit(2).
 			Find(&objects).Error
 		if len(objects) < 2 {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "there are less than 2 object versions nothing to restore"})
+			c.JSON(http.StatusInternalServerError,
+				gin.H{"error": "there are less than 2 object versions nothing to restore"})
 			return
 		}
 		deletedVersion := objects[0]
@@ -225,14 +226,14 @@ func RestoreObject() gin.HandlerFunc {
 		}
 		//  soft delete the deleted version for auditability
 		err = database.DB.Transaction(func(tx *gorm.DB) error {
-			if err = tx.Delete(&models.Object{}, deletedVersion.ID).Error; err != nil {
-				return err
+			if txErr := tx.Delete(&models.Object{}, deletedVersion.ID).Error; txErr != nil {
+				return txErr
 			}
 			return tx.Create(&restoredObject).Error
 		})
-
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to restore object: " + err.Error()})
+			c.JSON(http.StatusInternalServerError,
+				gin.H{"error": "failed to restore object: " + err.Error()})
 			return
 		}
 		c.IndentedJSON(http.StatusOK, restoredObject)

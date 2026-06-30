@@ -8,7 +8,12 @@ import (
 
 func main() {
 	database.Connect(config.Load())
-	err := database.DB.AutoMigrate(&models.Group{}, &models.Membership{}, &models.Bucket{}, &models.Object{})
+	err := database.DB.AutoMigrate(
+		&models.Group{},
+		&models.Membership{},
+		&models.Bucket{},
+		&models.Object{},
+	)
 	if err != nil {
 		panic(err)
 	}

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,7 +15,9 @@ func TestRegisterRoutes(t *testing.T) {
 	router := gin.New()
 	RegisterRoutes(router)
 
-	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	req := httptest.NewRequestWithContext(
+		context.Background(), http.MethodGet, "/ping", http.NoBody,
+	)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 

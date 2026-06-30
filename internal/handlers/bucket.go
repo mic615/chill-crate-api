@@ -87,10 +87,7 @@ func GetBucketByName() gin.HandlerFunc {
 func DeleteBucket() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bucketID := c.Param("bucketId")
-		force := false
-		if strings.ToLower(c.Query("force")) == "true" {
-			force = true
-		}
+		force := strings.ToLower(c.Query("force")) == "true"
 		var bucket models.Bucket
 		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})

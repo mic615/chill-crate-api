@@ -21,18 +21,22 @@ REST API for managing file storage organized into groups and buckets. Files are 
 ## API
 
 ```
-GET  /ping
+GET    /ping
 
-POST /groups                              create group
-GET  /groups                              list user's groups
-GET  /groups/:groupId/buckets             list buckets in group
+POST   /groups                                        create group
+GET    /groups                                        list user's groups
+GET    /groups/:groupId/buckets                       list buckets in group
+GET    /groups/:groupId/buckets/:name                 get bucket by name
 
-POST /buckets                             create bucket
-GET  /buckets/:bucketId/objects           list objects in bucket
-POST /buckets/:bucketId/object/:filename  upload file
-GET  /buckets/:bucketId/objects/:filename download file (latest version)
+POST   /buckets                                       create bucket
+DELETE /buckets/:bucketId                             delete bucket (add ?force=true to remove non-empty)
+GET    /buckets/:bucketId/objects                     list objects in bucket (latest version per file)
+POST   /buckets/:bucketId/objects/:filename           upload file (creates new version)
+GET    /buckets/:bucketId/objects/:filename           download file (latest version)
+DELETE /buckets/:bucketId/objects/:filename           soft-delete file (inserts delete marker)
+POST   /buckets/:bucketId/objects/:filename/restore   restore soft-deleted file
 
-GET  /objects/:id                         get object metadata
+GET    /objects/:id                                   get object metadata by ID
 ```
 
 ## Getting Started
