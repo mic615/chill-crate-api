@@ -17,7 +17,12 @@ type NewGroup struct {
 func CreateGroup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var group NewGroup
-		userID := c.GetHeader("X-Stub-User")
+		user, exists := c.Get("user")
+		if !exists {
+			c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return
+		}
+		userID := user.(*models.User).ID
 		// TODO handle missing ID
 		if err := c.ShouldBindJSON(&group); err != nil {
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -28,7 +33,7 @@ func CreateGroup() gin.HandlerFunc {
 			if err := tx.Create(&newGroup).Error; err != nil {
 				return err
 			}
-			membership := models.Membership{KCUserID: userID, GroupID: newGroup.ID}
+			membership := models.Membership{UserID: userID, GroupID: newGroup.ID}
 			// TODO: Role: RoleAdmin once roles are added
 			return tx.Create(&membership).Error
 		})
@@ -42,11 +47,16 @@ func CreateGroup() gin.HandlerFunc {
 
 func GetMyGroups() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userID := c.GetHeader("X-Stub-User")
+		user, exists := c.Get("user")
+		if !exists {
+			c.IndentedJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return
+		}
+		userID := user.(*models.User).ID
 		// TODO handle missing ID
 		groups := []models.Group{}
 		if err := database.DB.Joins("JOIN memberships ON memberships.group_id = groups.id").
-			Where("memberships.kc_user_id = ?", userID).
+			Where("memberships.user_id = ?", userID).
 			Find(&groups).
 			Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

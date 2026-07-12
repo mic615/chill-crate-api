@@ -35,7 +35,7 @@ fmt:
 	@go fmt ./...
 
 ## linter: Run golangci-lint
-linter:
+lint:
 	@golangci-lint run ./...
 
 docker-build:

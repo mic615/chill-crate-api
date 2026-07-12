@@ -13,6 +13,7 @@ func main() {
 		&models.Membership{},
 		&models.Bucket{},
 		&models.Object{},
+		&models.User{},
 	)
 	if err != nil {
 		panic(err)

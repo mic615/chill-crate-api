@@ -18,6 +18,7 @@ type Object struct {
 	UpdatedAt    time.Time
 	DeletedAt    gorm.DeletedAt `gorm:"index"`
 	DeleteMarker bool           `gorm:"not null;default:false"`
+	Bucket       Bucket         `gorm:"foreignKey:BucketID"`
 }
 
 func (o *Object) BeforeCreate(tx *gorm.DB) error {
