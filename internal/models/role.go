@@ -2,21 +2,22 @@ package models
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 )
 
 type Role int
 
 const (
-	RoleAdmin Role = iota
-	RoleEditor
-	RoleViewer
+	RoleViewer Role = iota // 0 (least privilege)
+	RoleEditor             // 1
+	RoleAdmin
 )
 
 var roleNames = map[Role]string{
-	RoleAdmin:  "Admin",
-	RoleEditor: "Editor",
-	RoleViewer: "Viewer",
+	RoleAdmin:  "admin",
+	RoleEditor: "editor",
+	RoleViewer: "viewer",
 }
 
 func (r Role) String() string {
@@ -58,11 +59,14 @@ func (r *Role) Scan(value any) error {
 func (r Role) Value() (driver.Value, error) { return r.String(), nil }
 
 func (r Role) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%q"`, r.String())), nil
+	return json.Marshal(r.String())
 }
 
 func (r *Role) UnmarshalJSON(data []byte) error {
-	roleStr := string(data)
+	var roleStr string
+	if err := json.Unmarshal(data, &roleStr); err != nil { // strips the quotes
+		return err
+	}
 	role, err := ParseRole(roleStr)
 	if err != nil {
 		return err

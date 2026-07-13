@@ -33,8 +33,11 @@ func CreateGroup() gin.HandlerFunc {
 			if err := tx.Create(&newGroup).Error; err != nil {
 				return err
 			}
-			membership := models.Membership{UserID: userID, GroupID: newGroup.ID}
-			// TODO: Role: RoleAdmin once roles are added
+			membership := models.Membership{
+				UserID:  userID,
+				GroupID: newGroup.ID,
+				Role:    models.RoleAdmin,
+			}
 			return tx.Create(&membership).Error
 		})
 		if err != nil {

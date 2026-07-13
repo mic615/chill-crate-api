@@ -32,7 +32,7 @@ tidy:
 
 ## fmt: Run go fmt against all packages
 fmt:
-	@go fmt ./...
+	@golangci-lint fmt ./...
 
 ## linter: Run golangci-lint
 lint:
