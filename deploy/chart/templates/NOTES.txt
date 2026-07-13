@@ -1,0 +1,20 @@
+Chill Crate API has been deployed.  Release: {{ .Release.Name }}  Namespace: {{ .Release.Namespace }}
+
+1. Check the pods are running:
+   kubectl -n {{ .Release.Namespace }} get pods -l app={{ .Chart.Name }}
+
+2. Reach the API:
+{{- if .Values.nodePort.enabled }}
+   NodePort is enabled. From anything on the LAN / tailnet, hit any node IP:
+     curl http://<node-ip>:{{ .Values.nodePort.port }}/ping
+{{- else }}
+   Port-forward to reach it locally:
+     kubectl -n {{ .Release.Namespace }} port-forward svc/{{ .Chart.Name }} {{ .Values.service.port }}:{{ .Values.service.port }}
+     curl http://localhost:{{ .Values.service.port }}/ping
+{{- end }}
+
+3. Image currently deployed:
+   {{ .Values.image.repository }}:{{ .Values.image.tag }}
+
+4. Roll back if an upgrade misbehaves:
+   helm rollback {{ .Release.Name }} -n {{ .Release.Namespace }}

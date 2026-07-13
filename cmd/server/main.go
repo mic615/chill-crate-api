@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/mic615/chill-crate-api/internal/auth"
 	"github.com/mic615/chill-crate-api/internal/config"
 	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/routes"
@@ -16,6 +17,7 @@ func main() {
 	cfg := config.Load()
 	database.Connect(cfg)
 	storage.Connect(cfg)
+	auth.NewClient(cfg)
 	routes.RegisterRoutes(router)
 	// Inform the user where the server is listening
 	log.Println("Running @ http://" + cfg.ServerHost + ":" + cfg.ServerPort)

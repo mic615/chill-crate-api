@@ -8,16 +8,11 @@ import (
 )
 
 type Group struct {
-	ID          uuid.UUID `gorm:"type:uuid;primaryKey"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	Name        string    `gorm:"not null"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	DeletedAt   gorm.DeletedAt `gorm:"index"`
-	Buckets     []Bucket
-	Memberships []Membership
-}
-
-func (g *Group) BeforeCreate(tx *gorm.DB) error {
-	g.ID = uuid.New()
-	return nil
+	Buckets     []Bucket       `gorm:"foreignKey:GroupID"`
+	Memberships []Membership   `gorm:"foreignKey:GroupID;constraint:OnDelete:CASCADE"`
 }

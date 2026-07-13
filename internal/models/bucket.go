@@ -14,7 +14,8 @@ type Bucket struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Objects   []Object
+	Objects   []Object       `gorm:"foreignKey:BucketID;constraint:OnDelete:CASCADE"`
+	Group     Group          `gorm:"foreignKey:GroupID"`
 }
 
 func (b *Bucket) BeforeCreate(tx *gorm.DB) error {

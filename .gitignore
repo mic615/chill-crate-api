@@ -35,5 +35,3 @@ secret.yaml
 # Editor/IDE
 # .idea/
 # .vscode/
-# txt files are for testing 
-*.txt
