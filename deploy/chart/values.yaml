@@ -5,7 +5,7 @@ replicaCount: 1
 image:
   repository: ghcr.io/mic615/chill-crate-api
   pullPolicy: Always
-  tag: main-a3a42a090f3875a49f99a25f5ca2f58c5832e001
+  tag: latest
 
 server:
   port: 8081
@@ -22,6 +22,7 @@ config:
   DB_HOST: postgres
   DB_PORT: "5432"
   DB_SSL_MODE: disable
+  KEYCLOAK_URL: https://dev.keycloak.mikeflot.com
   SERVER_HOST: "0.0.0.0"
   SERVER_PORT: "8081"
   STORAGE_ENDPOINT: http://minio:9000
