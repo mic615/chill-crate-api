@@ -3,34 +3,36 @@ package routes
 import (
 	"github.com/gin-gonic/gin"
 
-	"github.com/mic615/chill-crate-api/internal/auth"
 	"github.com/mic615/chill-crate-api/internal/handlers"
 )
 
-func RegisterRoutes(r *gin.Engine) {
+func RegisterRoutes(r *gin.Engine, h *handlers.Handler, authMiddleware gin.HandlerFunc) {
 	r.GET("/ping", handlers.Ping())
 
 	// everything below requires auth
 	protected := r.Group("/api")
-	protected.Use(auth.AuthMiddleware())
+	if authMiddleware == nil {
+		authMiddleware = func(c *gin.Context) { c.Next() }
+	}
+	protected.Use(authMiddleware)
 	// groups
 	groups := protected.Group("/groups")
-	groups.POST("", handlers.CreateGroup())
-	groups.GET("", handlers.GetMyGroups())
-	groups.GET("/:groupId/buckets", handlers.GetBucketsByGroupID())
-	groups.GET("/:groupId/buckets/:name", handlers.GetBucketByName())
+	groups.POST("", h.CreateGroup())
+	groups.GET("", h.GetMyGroups())
+	groups.GET("/:groupId/buckets", h.GetBucketsByGroupID())
+	groups.GET("/:groupId/buckets/:name", h.GetBucketByName())
 
 	// buckets
 	buckets := protected.Group("/buckets")
-	buckets.POST("", handlers.CreateBucket())
-	buckets.GET("/:bucketId/objects", handlers.GetObjectsByBucketID())
-	buckets.GET("/:bucketId/objects/:filename", handlers.DownloadObject())
-	buckets.POST("/:bucketId/objects/:filename", handlers.UploadObject())
-	buckets.DELETE("/:bucketId/objects/:filename", handlers.DeleteObject())
-	buckets.POST("/:bucketId/objects/:filename/restore", handlers.RestoreObject())
-	buckets.DELETE("/:bucketId", handlers.DeleteBucket())
+	buckets.POST("", h.CreateBucket())
+	buckets.GET("/:bucketId/objects", h.GetObjectsByBucketID())
+	buckets.GET("/:bucketId/objects/:filename", h.DownloadObject())
+	buckets.POST("/:bucketId/objects/:filename", h.UploadObject())
+	buckets.DELETE("/:bucketId/objects/:filename", h.DeleteObject())
+	buckets.POST("/:bucketId/objects/:filename/restore", h.RestoreObject())
+	buckets.DELETE("/:bucketId", h.DeleteBucket())
 
 	// objects
 	objects := protected.Group("/objects")
-	objects.GET("/:id", handlers.GetObjectByID())
+	objects.GET("/:id", h.GetObjectByID())
 }

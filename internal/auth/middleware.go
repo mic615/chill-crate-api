@@ -15,7 +15,7 @@ type TokenClaims struct {
 	Username  string `json:"preferred_username"`
 }
 
-func AuthMiddleware() gin.HandlerFunc {
+func (a *Authenticator) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -29,7 +29,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.AbortWithStatusJSON(401, gin.H{"error": "Malformed authorization header"})
 			return
 		}
-		idToken, err := KCClient.OIDC.Verify(c.Request.Context(), token)
+		idToken, err := a.kc.OIDC.Verify(c.Request.Context(), token)
 		if err != nil {
 			log.Printf("token verification failed: %v", err)
 			c.AbortWithStatusJSON(401, gin.H{"error": "Invalid token"})
@@ -41,7 +41,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			c.AbortWithStatusJSON(401, gin.H{"error": "Failed to parse token claims"})
 			return
 		}
-		user, err := resolveOrCreateUser(&claims)
+		user, err := a.resolveOrCreateUser(&claims)
 		if err != nil {
 			log.Printf("failed to resolve or create user: %v", err)
 			c.AbortWithStatusJSON(500, gin.H{"error": "Failed to resolve or create user"})

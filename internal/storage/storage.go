@@ -16,9 +16,11 @@ import (
 	"github.com/mic615/chill-crate-api/internal/models"
 )
 
-var Client *s3.Client
+type Storage struct {
+	Client *s3.Client
+}
 
-func Connect(cfg *config.Config) {
+func Connect(cfg *config.Config) *Storage {
 	awscfg, err := awsconfig.LoadDefaultConfig(
 		context.Background(),
 		awsconfig.WithRegion(cfg.StorageRegion),
@@ -42,11 +44,11 @@ func Connect(cfg *config.Config) {
 	if _, err := client.ListBuckets(context.Background(), &s3.ListBucketsInput{}); err != nil {
 		log.Fatalf("failed to reach Storage endpoint %s: %v", cfg.StorageEndpoint, err)
 	}
-	Client = client
+	return &Storage{Client: client}
 }
 
-func CreateBucket(name string) error {
-	_, err := Client.CreateBucket(
+func (s *Storage) CreateBucket(name string) error {
+	_, err := s.Client.CreateBucket(
 		context.Background(),
 		&s3.CreateBucketInput{Bucket: aws.String(name)},
 	)
@@ -56,8 +58,8 @@ func CreateBucket(name string) error {
 	return err
 }
 
-func DeleteBucket(bucketID string) error {
-	_, err := Client.DeleteBucket(
+func (s *Storage) DeleteBucket(bucketID string) error {
+	_, err := s.Client.DeleteBucket(
 		context.Background(),
 		&s3.DeleteBucketInput{Bucket: aws.String(bucketID)},
 	)
@@ -67,8 +69,12 @@ func DeleteBucket(bucketID string) error {
 	return err
 }
 
-func UploadObject(bucketName, objectKey, fileName string, body io.Reader, size int64) error {
-	_, err := Client.PutObject(context.Background(), &s3.PutObjectInput{
+func (s *Storage) UploadObject(
+	bucketName, objectKey, fileName string,
+	body io.Reader,
+	size int64,
+) error {
+	_, err := s.Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket:        aws.String(bucketName),
 		Key:           aws.String(objectKey),
 		Body:          body,
@@ -87,9 +93,12 @@ func UploadObject(bucketName, objectKey, fileName string, body io.Reader, size i
 }
 
 // this does miltipart file upload .Will likely get removed
-func UploadObjectMP(bucketName, objectKey, fileName string, file multipart.File) error {
+func (s *Storage) UploadObjectMP(
+	bucketName, objectKey, fileName string,
+	file multipart.File,
+) error {
 	defer file.Close()
-	_, err := Client.PutObject(context.Background(), &s3.PutObjectInput{
+	_, err := s.Client.PutObject(context.Background(), &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(objectKey),
 		Body:   file,
@@ -106,8 +115,8 @@ func UploadObjectMP(bucketName, objectKey, fileName string, file multipart.File)
 	return err
 }
 
-func DownloadObject(bucketName, objectKey string) (io.ReadCloser, error) {
-	result, err := Client.GetObject(context.Background(), &s3.GetObjectInput{
+func (s *Storage) DownloadObject(bucketName, objectKey string) (io.ReadCloser, error) {
+	result, err := s.Client.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: &bucketName,
 		Key:    &objectKey,
 	})
@@ -122,9 +131,9 @@ func DownloadObject(bucketName, objectKey string) (io.ReadCloser, error) {
 	return result.Body, err
 }
 
-func DeleteObjects(bucketName string, objects []models.Object) error {
+func (s *Storage) DeleteObjects(bucketName string, objects []models.Object) error {
 	for _, obj := range objects {
-		_, err := Client.DeleteObject(
+		_, err := s.Client.DeleteObject(
 			context.Background(),
 			&s3.DeleteObjectInput{
 				Bucket: aws.String(bucketName),

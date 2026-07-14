@@ -10,12 +10,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
-	"github.com/mic615/chill-crate-api/internal/storage"
 )
 
-func UploadObject() gin.HandlerFunc {
+func (h *Handler) UploadObject() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bucketID := c.Param("bucketId")
 		fileName := c.Param("filename")
@@ -24,13 +22,13 @@ func UploadObject() gin.HandlerFunc {
 		// Todo add role checks when auth is added
 		// verify bucket exists
 		var bucket models.Bucket
-		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
 		// calculate version
 		objects := []models.Object{}
-		database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
+		h.db.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
 			Order("version desc").
 			Find(&objects)
 		version := 1
@@ -47,7 +45,7 @@ func UploadObject() gin.HandlerFunc {
 			return
 		}
 
-		if err := storage.UploadObject(
+		if err := h.storageClient.UploadObject(
 			bucket.ID.String(),
 			storagePath.String(),
 			fileName,
@@ -65,7 +63,7 @@ func UploadObject() gin.HandlerFunc {
 			StoragePath: &storagePath,
 			Size:        c.Request.ContentLength,
 		}
-		if err := database.DB.Create(&newObject).Error; err != nil {
+		if err := h.db.Create(&newObject).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -73,18 +71,18 @@ func UploadObject() gin.HandlerFunc {
 	}
 }
 
-func DownloadObject() gin.HandlerFunc {
+func (h *Handler) DownloadObject() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		filename := c.Param("filename")
 		bucketID := c.Param("bucketId")
 		var bucket models.Bucket
-		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
 		object := models.Object{}
 		// get the latest object
-		if err := database.DB.Where("bucket_id = ? AND file_name = ?", bucketID, filename).
+		if err := h.db.Where("bucket_id = ? AND file_name = ?", bucketID, filename).
 			Order("version desc").
 			First(&object).
 			Error; err != nil || object.DeleteMarker {
@@ -93,7 +91,7 @@ func DownloadObject() gin.HandlerFunc {
 		}
 		// todo check file size
 		// based on size , do single or multi part downlod
-		body, err := storage.DownloadObject(bucket.ID.String(), object.StoragePath.String())
+		body, err := h.storageClient.DownloadObject(bucket.ID.String(), object.StoragePath.String())
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -107,13 +105,13 @@ func DownloadObject() gin.HandlerFunc {
 	}
 }
 
-func GetObjectsByBucketID() gin.HandlerFunc {
+func (h *Handler) GetObjectsByBucketID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bucketID := c.Param("bucketId")
 		objects := []models.Object{}
 
 		var bucket models.Bucket
-		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
@@ -126,7 +124,7 @@ func GetObjectsByBucketID() gin.HandlerFunc {
 			) latest 
 			WHERE delete_marker = false;
 		`
-		if err := database.DB.Raw(queryString, bucketID).Scan(&objects).Error; err != nil {
+		if err := h.db.Raw(queryString, bucketID).Scan(&objects).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -134,12 +132,12 @@ func GetObjectsByBucketID() gin.HandlerFunc {
 	}
 }
 
-func GetObjectByID() gin.HandlerFunc {
+func (h *Handler) GetObjectByID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		id := c.Param("id")
 		object := models.Object{}
 
-		if err := database.DB.First(&object, id).Error; err != nil {
+		if err := h.db.First(&object, id).Error; err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -147,7 +145,7 @@ func GetObjectByID() gin.HandlerFunc {
 	}
 }
 
-func DeleteObject() gin.HandlerFunc {
+func (h *Handler) DeleteObject() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bucketID := c.Param("bucketId")
 		fileName := c.Param("filename")
@@ -156,13 +154,13 @@ func DeleteObject() gin.HandlerFunc {
 		// Todo add role checks when auth is added
 		// verify bucket exists
 		var bucket models.Bucket
-		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
 		// find latest object version and verify it is not deleted already
 		object := models.Object{}
-		if err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
+		if err := h.db.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
 			Order("version desc").
 			First(&object).Error; err != nil || object.DeleteMarker {
 			c.JSON(http.StatusNotFound, gin.H{"error": "object not found"})
@@ -178,7 +176,7 @@ func DeleteObject() gin.HandlerFunc {
 			DeleteMarker: true,
 			Size:         0,
 		}
-		if err := database.DB.Create(&newObject).Error; err != nil {
+		if err := h.db.Create(&newObject).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -186,7 +184,7 @@ func DeleteObject() gin.HandlerFunc {
 	}
 }
 
-func RestoreObject() gin.HandlerFunc {
+func (h *Handler) RestoreObject() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bucketID := c.Param("bucketId")
 		fileName := c.Param("filename")
@@ -195,13 +193,13 @@ func RestoreObject() gin.HandlerFunc {
 		// Todo add role checks when auth is added
 		// verify bucket exists
 		var bucket models.Bucket
-		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
 		// find last 2 objects  should be the deleted one and version n-1 (the one we're restoring)
 		objects := []models.Object{}
-		err := database.DB.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
+		err := h.db.Where("bucket_id = ? AND file_name = ? ", bucketID, fileName).
 			Order("version desc").Limit(2).
 			Find(&objects).Error
 		if len(objects) < 2 {
@@ -225,7 +223,7 @@ func RestoreObject() gin.HandlerFunc {
 			Size:        restoredVersion.Size,
 		}
 		//  soft delete the deleted version for auditability
-		err = database.DB.Transaction(func(tx *gorm.DB) error {
+		err = h.db.Transaction(func(tx *gorm.DB) error {
 			if txErr := tx.Delete(&models.Object{}, deletedVersion.ID).Error; txErr != nil {
 				return txErr
 			}
