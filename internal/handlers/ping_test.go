@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/mic615/chill-crate-api/internal/handlers"
 )
 
 func TestPing(t *testing.T) {
@@ -19,7 +21,7 @@ func TestPing(t *testing.T) {
 	c, _ := gin.CreateTestContext(w)
 	c.Request = req
 
-	Ping()(c)
+	handlers.Ping()(c)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected status %d, got %d", http.StatusOK, w.Code)

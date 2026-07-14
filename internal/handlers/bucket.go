@@ -8,9 +8,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
-	"github.com/mic615/chill-crate-api/internal/storage"
 )
 
 type NewBucket struct {
@@ -18,7 +16,7 @@ type NewBucket struct {
 	GroupID uuid.UUID `json:"group_id" binding:"required"`
 }
 
-func CreateBucket() gin.HandlerFunc {
+func (h *Handler) CreateBucket() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var bucket NewBucket
 		if err := c.ShouldBindJSON(&bucket); err != nil {
@@ -27,17 +25,17 @@ func CreateBucket() gin.HandlerFunc {
 		}
 
 		var group models.Group
-		if err := database.DB.First(&group, "id = ?", bucket.GroupID).Error; err != nil {
+		if err := h.db.First(&group, "id = ?", bucket.GroupID).Error; err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "group not found"})
 			return
 		}
 		bucketID := uuid.New()
 		newBucket := models.Bucket{ID: bucketID, Name: bucket.Name, GroupID: bucket.GroupID}
-		if err := storage.CreateBucket(bucketID.String()); err != nil {
+		if err := h.storageClient.CreateBucket(bucketID.String()); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		if err := database.DB.Create(&newBucket).Error; err != nil {
+		if err := h.db.Create(&newBucket).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -45,17 +43,17 @@ func CreateBucket() gin.HandlerFunc {
 	}
 }
 
-func GetBucketsByGroupID() gin.HandlerFunc {
+func (h *Handler) GetBucketsByGroupID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		groupID := c.Param("groupId")
 		buckets := []models.Bucket{}
 
 		var group models.Group
-		if err := database.DB.First(&group, "id = ?", groupID).Error; err != nil {
+		if err := h.db.First(&group, "id = ?", groupID).Error; err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "group not found"})
 			return
 		}
-		if err := database.DB.Where("group_id = ?", groupID).Find(&buckets).Error; err != nil {
+		if err := h.db.Where("group_id = ?", groupID).Find(&buckets).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -63,18 +61,18 @@ func GetBucketsByGroupID() gin.HandlerFunc {
 	}
 }
 
-func GetBucketByName() gin.HandlerFunc {
+func (h *Handler) GetBucketByName() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		groupID := c.Param("groupId")
 		name := c.Param("name")
 		bucket := models.Bucket{}
 
 		var group models.Group
-		if err := database.DB.First(&group, "id = ?", groupID).Error; err != nil {
+		if err := h.db.First(&group, "id = ?", groupID).Error; err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "group not found"})
 			return
 		}
-		if err := database.DB.Where("group_id = ? AND name = ?", groupID, name).
+		if err := h.db.Where("group_id = ? AND name = ?", groupID, name).
 			First(&bucket).
 			Error; err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -84,19 +82,19 @@ func GetBucketByName() gin.HandlerFunc {
 	}
 }
 
-func DeleteBucket() gin.HandlerFunc {
+func (h *Handler) DeleteBucket() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		bucketID := c.Param("bucketId")
 		force := strings.ToLower(c.Query("force")) == "true"
 		var bucket models.Bucket
-		if err := database.DB.First(&bucket, "id = ?", bucketID).Error; err != nil {
+		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
 
 		// find all objects in the bucket
 		objects := []models.Object{}
-		if err := database.DB.Where("bucket_id = ? AND delete_marker = false", bucketID).
+		if err := h.db.Where("bucket_id = ? AND delete_marker = false", bucketID).
 			Find(&objects).
 			Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -107,17 +105,17 @@ func DeleteBucket() gin.HandlerFunc {
 				c.IndentedJSON(http.StatusConflict, gin.H{"error": "bucket not empty"})
 				return
 			}
-			if err := storage.DeleteObjects(bucket.ID.String(), objects); err != nil {
+			if err := h.storageClient.DeleteObjects(bucket.ID.String(), objects); err != nil {
 				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 		}
-		if err := storage.DeleteBucket(bucket.ID.String()); err != nil {
+		if err := h.storageClient.DeleteBucket(bucket.ID.String()); err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		// after S3 objects + S3 bucket are gone, clear the DB in a transaction
-		err := database.DB.Transaction(func(tx *gorm.DB) error {
+		err := h.db.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Unscoped().
 				Where("bucket_id = ?", bucket.ID).
 				Delete(&models.Object{}).

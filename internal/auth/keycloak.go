@@ -6,9 +6,15 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
+	"gorm.io/gorm"
 
 	"github.com/mic615/chill-crate-api/internal/config"
 )
+
+type Authenticator struct {
+	kc *Client
+	db *gorm.DB
+}
 
 type Client struct {
 	Provider *oidc.Provider
@@ -18,7 +24,7 @@ type Client struct {
 
 var KCClient *Client
 
-func NewClient(cfg *config.Config) {
+func NewAuthenticator(cfg *config.Config, db *gorm.DB) *Authenticator {
 	providerURL := cfg.KeycloakURL + "/realms/" + cfg.Realm
 	provider, err := oidc.NewProvider(context.Background(), providerURL)
 	if err != nil {
@@ -38,5 +44,9 @@ func NewClient(cfg *config.Config) {
 		Provider: provider,
 		OIDC:     verifier,
 		OAuth:    oauth,
+	}
+	return &Authenticator{
+		kc: KCClient,
+		db: db,
 	}
 }

@@ -7,13 +7,16 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+
+	"github.com/mic615/chill-crate-api/internal/handlers"
 )
 
 func TestRegisterRoutes(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
+	h := handlers.NewHandler(nil, nil)
 	router := gin.New()
-	RegisterRoutes(router)
+	RegisterRoutes(router, h, func(c *gin.Context) { c.Next() })
 
 	req := httptest.NewRequestWithContext(
 		context.Background(), http.MethodGet, "/ping", http.NoBody,

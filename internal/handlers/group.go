@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
-	"github.com/mic615/chill-crate-api/internal/database"
 	"github.com/mic615/chill-crate-api/internal/models"
 )
 
@@ -14,7 +13,7 @@ type NewGroup struct {
 	Name string `json:"name" binding:"required"`
 }
 
-func CreateGroup() gin.HandlerFunc {
+func (h *Handler) CreateGroup() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var group NewGroup
 		user, exists := c.Get("user")
@@ -29,7 +28,7 @@ func CreateGroup() gin.HandlerFunc {
 			return
 		}
 		newGroup := models.Group{Name: group.Name}
-		err := database.DB.Transaction(func(tx *gorm.DB) error {
+		err := h.db.Transaction(func(tx *gorm.DB) error {
 			if err := tx.Create(&newGroup).Error; err != nil {
 				return err
 			}
@@ -48,7 +47,7 @@ func CreateGroup() gin.HandlerFunc {
 	}
 }
 
-func GetMyGroups() gin.HandlerFunc {
+func (h *Handler) GetMyGroups() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, exists := c.Get("user")
 		if !exists {
@@ -58,7 +57,7 @@ func GetMyGroups() gin.HandlerFunc {
 		userID := user.(*models.User).ID
 		// TODO handle missing ID
 		groups := []models.Group{}
-		if err := database.DB.Joins("JOIN memberships ON memberships.group_id = groups.id").
+		if err := h.db.Joins("JOIN memberships ON memberships.group_id = groups.id").
 			Where("memberships.user_id = ?", userID).
 			Find(&groups).
 			Error; err != nil {
@@ -69,10 +68,10 @@ func GetMyGroups() gin.HandlerFunc {
 	}
 }
 
-func GetGroups() gin.HandlerFunc {
+func (h *Handler) GetGroups() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		groups := []models.Group{}
-		if err := database.DB.Find(&groups).Error; err != nil {
+		if err := h.db.Find(&groups).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
