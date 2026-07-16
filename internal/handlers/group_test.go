@@ -79,7 +79,10 @@ func newMemberUser(t *testing.T, db *gorm.DB) models.User {
 	return user
 }
 
-func addMemberRequest(admin *models.User, groupID, body string) (*httptest.ResponseRecorder, *gin.Context) {
+func addMemberRequest(
+	admin *models.User,
+	groupID, body string,
+) (*httptest.ResponseRecorder, *gin.Context) {
 	w, c := testutil.AuthenticateRequest(admin)
 	c.Request = httptest.NewRequestWithContext(
 		context.Background(),
@@ -107,7 +110,10 @@ func TestAddMember(t *testing.T) {
 		require.Equal(t, http.StatusCreated, w.Code)
 
 		var m models.Membership
-		require.NoError(t, db.Where("user_id = ? AND group_id = ?", newUser.ID, group.ID).First(&m).Error)
+		require.NoError(
+			t,
+			db.Where("user_id = ? AND group_id = ?", newUser.ID, group.ID).First(&m).Error,
+		)
 		require.Equal(t, models.RoleEditor, m.Role)
 	})
 
@@ -121,7 +127,10 @@ func TestAddMember(t *testing.T) {
 		require.Equal(t, http.StatusCreated, w.Code)
 
 		var m models.Membership
-		require.NoError(t, db.Where("user_id = ? AND group_id = ?", newUser.ID, group.ID).First(&m).Error)
+		require.NoError(
+			t,
+			db.Where("user_id = ? AND group_id = ?", newUser.ID, group.ID).First(&m).Error,
+		)
 		require.Equal(t, models.RoleEditor, m.Role)
 	})
 

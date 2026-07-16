@@ -22,7 +22,6 @@ func AddMembership(
 	g models.Group,
 	role models.Role,
 ) (models.Membership, error) {
-
 	membership := models.Membership{
 		UserID:  u.ID,
 		GroupID: g.ID,

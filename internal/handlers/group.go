@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
@@ -105,12 +106,8 @@ func (h *Handler) AddMember() gin.HandlerFunc {
 		if !h.authorize(c, group.ID, models.RoleAdmin) {
 			return
 		}
-		var newUser models.User
-		query := "username = ?"
-		if strings.Contains(member.Identifier, "@") {
-			query = "email = ?"
-		}
-		if err := h.db.First(&newUser, query, member.Identifier).Error; err != nil {
+		newUser, err := h.findUserByIdentifier(member.Identifier)
+		if err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "user not found"})
 			return
 		}
@@ -145,41 +142,14 @@ func (h *Handler) UpdateRole() gin.HandlerFunc {
 		if !h.authorize(c, group.ID, models.RoleAdmin) {
 			return
 		}
-		var newUser models.User
-		query := "username = ?"
-		if strings.Contains(member.Identifier, "@") {
-			query = "email = ?"
-		}
-
-		if err := h.db.First(&newUser, query, member.Identifier).Error; err != nil {
+		newUser, err := h.findUserByIdentifier(member.Identifier)
+		if err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "user not found"})
 			return
 		}
 
-		var membership models.Membership
-		if err := h.db.Transaction(func(tx *gorm.DB) error {
-			// lock the membership rows for this group to serialize concurrent demotions
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Where("user_id = ? AND group_id = ?", newUser.ID, group.ID).
-				First(&membership).Error; err != nil {
-				return err
-			}
-			// if this change removes an admin, ensure at least one admin remains
-			if membership.Role == models.RoleAdmin && member.Role != models.RoleAdmin {
-				var adminCount int64
-				err := tx.Model(&models.Membership{}).
-					Where("group_id = ? AND role = ?", group.ID, models.RoleAdmin).
-					Count(&adminCount).Error
-				if err != nil {
-					return err
-				}
-				if adminCount <= 1 {
-					return ErrLastAdmin
-				}
-			}
-			membership.Role = member.Role
-			return tx.Save(&membership).Error
-		}); err != nil {
+		membership, err := h.updateMembershipRole(group.ID, newUser.ID, member.Role)
+		if err != nil {
 			switch {
 			case errors.Is(err, gorm.ErrRecordNotFound):
 				c.IndentedJSON(http.StatusNotFound, gin.H{"error": "membership not found"})
@@ -192,4 +162,48 @@ func (h *Handler) UpdateRole() gin.HandlerFunc {
 		}
 		c.IndentedJSON(http.StatusOK, membership)
 	}
+}
+
+// findUserByIdentifier looks up a user by email or by username otherwise.
+func (h *Handler) findUserByIdentifier(identifier string) (models.User, error) {
+	var user models.User
+	query := "username = ?"
+	if strings.Contains(identifier, "@") {
+		query = "email = ?"
+	}
+	err := h.db.First(&user, query, identifier).Error
+	return user, err
+}
+
+// updateMembershipRole changes a user's role within a group, refusing to
+// demote the group's last remaining admin.
+func (h *Handler) updateMembershipRole(
+	groupID, userID uuid.UUID,
+	newRole models.Role,
+) (models.Membership, error) {
+	var membership models.Membership
+	err := h.db.Transaction(func(tx *gorm.DB) error {
+		// lock the membership row for this group to serialize concurrent demotions
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("user_id = ? AND group_id = ?", userID, groupID).
+			First(&membership).Error; err != nil {
+			return err
+		}
+		// if this change removes an admin, ensure at least one admin remains
+		if membership.Role == models.RoleAdmin && newRole != models.RoleAdmin {
+			var adminCount int64
+			err := tx.Model(&models.Membership{}).
+				Where("group_id = ? AND role = ?", groupID, models.RoleAdmin).
+				Count(&adminCount).Error
+			if err != nil {
+				return err
+			}
+			if adminCount <= 1 {
+				return ErrLastAdmin
+			}
+		}
+		membership.Role = newRole
+		return tx.Save(&membership).Error
+	})
+	return membership, err
 }
