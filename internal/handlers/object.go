@@ -18,12 +18,14 @@ func (h *Handler) UploadObject() gin.HandlerFunc {
 		bucketID := c.Param("bucketId")
 		fileName := c.Param("filename")
 		// todo validate and sanitize file name
-
-		// Todo add role checks when auth is added
 		// verify bucket exists
 		var bucket models.Bucket
 		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
+			return
+		}
+		// RBAC
+		if !h.authorize(c, bucket.GroupID, models.RoleEditor) {
 			return
 		}
 		// calculate version
@@ -80,6 +82,10 @@ func (h *Handler) DownloadObject() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
 			return
 		}
+		// RBAC
+		if !h.authorize(c, bucket.GroupID, models.RoleViewer) {
+			return
+		}
 		object := models.Object{}
 		// get the latest object
 		if err := h.db.Where("bucket_id = ? AND file_name = ?", bucketID, filename).
@@ -113,6 +119,10 @@ func (h *Handler) GetObjectsByBucketID() gin.HandlerFunc {
 		var bucket models.Bucket
 		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
+			return
+		}
+		// RBAC
+		if !h.authorize(c, bucket.GroupID, models.RoleViewer) {
 			return
 		}
 		queryString := `
@@ -150,12 +160,14 @@ func (h *Handler) DeleteObject() gin.HandlerFunc {
 		bucketID := c.Param("bucketId")
 		fileName := c.Param("filename")
 		// todo validate and sanitize file name
-
-		// Todo add role checks when auth is added
 		// verify bucket exists
 		var bucket models.Bucket
 		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
+			return
+		}
+		// RBAC
+		if !h.authorize(c, bucket.GroupID, models.RoleEditor) {
 			return
 		}
 		// find latest object version and verify it is not deleted already
@@ -189,12 +201,14 @@ func (h *Handler) RestoreObject() gin.HandlerFunc {
 		bucketID := c.Param("bucketId")
 		fileName := c.Param("filename")
 		// todo validate and sanitize file name
-
-		// Todo add role checks when auth is added
 		// verify bucket exists
 		var bucket models.Bucket
 		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
+			return
+		}
+		// RBAC
+		if !h.authorize(c, bucket.GroupID, models.RoleEditor) {
 			return
 		}
 		// find last 2 objects  should be the deleted one and version n-1 (the one we're restoring)

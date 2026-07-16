@@ -21,7 +21,7 @@ func Connect(cfg *config.Config) {
 		cfg.DBName,
 		cfg.DBSSLMode,
 	)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{TranslateError: true})
 	if err != nil {
 		panic(err)
 	}
