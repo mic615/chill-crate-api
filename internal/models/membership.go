@@ -7,12 +7,11 @@ import (
 	"gorm.io/gorm"
 )
 
-// todo add roles
 type Membership struct {
 	ID        uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()"`
 	UserID    uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_membership_user_group"`
 	GroupID   uuid.UUID `gorm:"type:uuid;not null;uniqueIndex:idx_membership_user_group"`
-	Role      Role      `gorm:"not null;default:viewer"`
+	Role      Role      `gorm:"type:text;not null"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	User      User  `gorm:"foreignKey:UserID"`

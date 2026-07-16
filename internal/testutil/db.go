@@ -11,6 +11,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	gormpostgres "gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 
 	"github.com/mic615/chill-crate-api/internal/models"
 )
@@ -38,7 +39,10 @@ func SetupTestDB(t *testing.T) (*gorm.DB, error) {
 
 	connStr, err := pgContainer.ConnectionString(ctx, "sslmode=disable")
 	require.NoError(t, err)
-	db, err := gorm.Open(gormpostgres.Open(connStr), &gorm.Config{})
+	db, err := gorm.Open(gormpostgres.Open(connStr), &gorm.Config{
+		Logger:         logger.Default.LogMode(logger.Silent),
+		TranslateError: true,
+	})
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(
 		&models.User{}, &models.Group{}, &models.Membership{}, &models.Bucket{}, &models.Object{},

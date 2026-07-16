@@ -19,6 +19,8 @@ func RegisterRoutes(r *gin.Engine, h *handlers.Handler, authMiddleware gin.Handl
 	groups := protected.Group("/groups")
 	groups.POST("", h.CreateGroup())
 	groups.GET("", h.GetMyGroups())
+	groups.POST("/:groupId/members", h.AddMember())
+	groups.PUT("/:groupId/members", h.UpdateRole())
 	groups.GET("/:groupId/buckets", h.GetBucketsByGroupID())
 	groups.GET("/:groupId/buckets/:name", h.GetBucketByName())
 

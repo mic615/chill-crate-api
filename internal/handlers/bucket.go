@@ -29,6 +29,10 @@ func (h *Handler) CreateBucket() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "group not found"})
 			return
 		}
+		// RBAC
+		if !h.authorize(c, group.ID, models.RoleEditor) {
+			return
+		}
 		bucketID := uuid.New()
 		newBucket := models.Bucket{ID: bucketID, Name: bucket.Name, GroupID: bucket.GroupID}
 		if err := h.storageClient.CreateBucket(bucketID.String()); err != nil {
@@ -53,6 +57,10 @@ func (h *Handler) GetBucketsByGroupID() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "group not found"})
 			return
 		}
+		// RBAC
+		if !h.authorize(c, group.ID, models.RoleViewer) {
+			return
+		}
 		if err := h.db.Where("group_id = ?", groupID).Find(&buckets).Error; err != nil {
 			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -72,6 +80,11 @@ func (h *Handler) GetBucketByName() gin.HandlerFunc {
 			c.IndentedJSON(http.StatusNotFound, gin.H{"error": "group not found"})
 			return
 		}
+		// RBAC
+		if !h.authorize(c, group.ID, models.RoleViewer) {
+			return
+		}
+
 		if err := h.db.Where("group_id = ? AND name = ?", groupID, name).
 			First(&bucket).
 			Error; err != nil {
@@ -89,6 +102,10 @@ func (h *Handler) DeleteBucket() gin.HandlerFunc {
 		var bucket models.Bucket
 		if err := h.db.First(&bucket, "id = ?", bucketID).Error; err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found"})
+			return
+		}
+		// RBAC
+		if !h.authorize(c, bucket.GroupID, models.RoleEditor) {
 			return
 		}
 
