@@ -1,0 +1,27 @@
+# EKS (stg) overrides. Layered over values.yaml, so only the differing keys
+# belong here. Maps merge; lists would be replaced wholesale.
+#
+# Test locally before letting ArgoCD near it:
+#   helm template deploy/chart -f deploy/chart/values-stg.yaml
+
+# The nodes sit in private subnets on EKS, so a NodePort reaches nothing.
+nodePort:
+  enabled: false
+
+ingress:
+  enabled: true
+  className: nginx
+  host: stg.api.mikeflot.com
+  annotations:
+    # Swap to letsencrypt-prod once the path is confirmed end to end.
+    # Let's Encrypt allows only 5 duplicate certs per week on the real CA.
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+  tls:
+    enabled: true
+    secretName: chill-crate-api-tls
+
+config:
+  # Keycloak lives at a different hostname on this cluster. Everything else in
+  # config -- DB_HOST, STORAGE_ENDPOINT, ports -- is a cluster-internal service
+  # name and is identical in both environments.
+  KEYCLOAK_URL: https://stg.keycloak.mikeflot.com
