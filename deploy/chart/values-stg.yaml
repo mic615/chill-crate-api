@@ -11,11 +11,9 @@ nodePort:
 ingress:
   enabled: true
   className: nginx
-  host: stg.api.mikeflot.com
+  host: stg.chill-crate-api.mikeflot.com
   annotations:
-    # Swap to letsencrypt-prod once the path is confirmed end to end.
-    # Let's Encrypt allows only 5 duplicate certs per week on the real CA.
-    cert-manager.io/cluster-issuer: letsencrypt-staging
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   tls:
     enabled: true
     secretName: chill-crate-api-tls

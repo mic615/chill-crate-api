@@ -31,6 +31,8 @@ go.work.sum
 data/
 
 secret.yaml
+secret-*.yaml
+
 
 # Editor/IDE
 # .idea/
