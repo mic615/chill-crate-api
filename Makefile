@@ -2,7 +2,7 @@
 BINARY_NAME=chill-crate-api
 BUILD_DIR=bin
 
-.PHONY: up down restart logs build run test clean tidy fmt linter help
+.PHONY: up down restart logs build docker-build run test clean tidy fmt lint help
 
 all: build
 

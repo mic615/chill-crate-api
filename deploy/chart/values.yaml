@@ -13,10 +13,26 @@ server:
 service:
   port: 8081
 
+# NodePort works on baremetal where the nodes are directly addressable. On EKS
+# the nodes sit in private subnets, so the stg Application disables this and
+# turns on the ingress below instead.
 nodePort:
   enabled: true
   port: 8081
   nodePort: 30081
+
+# Disabled by default so the homelab keeps using NodePort. The stg ArgoCD
+# Application enables it and supplies the host.
+ingress:
+  enabled: false
+  className: nginx
+  host: ""
+  path: /
+  pathType: Prefix
+  annotations: {}
+  tls:
+    enabled: true
+    secretName: chill-crate-api-tls
 
 config:
   DB_HOST: postgres
