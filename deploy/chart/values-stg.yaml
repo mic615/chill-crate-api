@@ -23,3 +23,12 @@ config:
   # config -- DB_HOST, STORAGE_ENDPOINT, ports -- is a cluster-internal service
   # name and is identical in both environments.
   KEYCLOAK_URL: https://stg.keycloak.mikeflot.com
+
+  # RDS sets rds.force_ssl = 1, so an unencrypted connection is refused before
+  # authentication. The base values.yaml says "disable" for the in-cluster
+  # Postgres on the homelab.
+  #
+  # "require" encrypts without verifying the certificate, which is what lets
+  # DB_HOST stay "postgres" -- that Service is an ExternalName pointing at the
+  # RDS endpoint, so the hostname will never match the cert.
+  DB_SSL_MODE: require
